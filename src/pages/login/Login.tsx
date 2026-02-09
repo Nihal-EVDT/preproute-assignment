@@ -2,17 +2,13 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { useDispatch } from 'react-redux'
-import loginBG from '../assets/loginBG.png'
-import logo from '../assets/logo.png'
-
+import loginBG from '../../assets/loginBG.png'
+import logo from '../../assets/logo.png'
 
 import { useNavigate } from 'react-router-dom'
-import { loginApi } from '../api/auth.api'
-import { loginSuccess } from '../store/slice/auth.slice'
+import { loginApi } from '../../api/auth.api'
+import { loginSuccess } from '../../store/slice/auth.slice'
 
-// ------------------
-// Validation Schema
-// ------------------
 const schema = yup.object({
   userId: yup.string().required('User ID is required'),
   password: yup.string().required('Password is required')
@@ -47,7 +43,6 @@ export default function Login () {
 
   return (
     <div className='min-h-screen flex bg-blue-50'>
-      {/* LEFT IMAGE SECTION */}
       <div className='hidden lg:flex w-1/2 items-center justify-center'>
         <img
           src={loginBG}
@@ -57,12 +52,9 @@ export default function Login () {
         />
       </div>
 
-      {/* RIGHT PANEL */}
       <div className='w-full lg:w-1/2 flex items-center justify-center'>
         <div className='h-[94%] w-[92%] rounded-xl border border-[#CFE0FF] bg-white flex items-center justify-center'>
-          {/* CONTENT */}
           <div className='w-full max-w-[420px] px-2'>
-            {/* LOGO */}
             <div className='mb-2'>
               <img
                 src={logo}
@@ -72,7 +64,6 @@ export default function Login () {
               />
             </div>
 
-            {/* TITLE */}
             <h2 className='text-[18px] font-medium text-[#111827] mb-1'>
               Login
             </h2>
@@ -81,7 +72,6 @@ export default function Login () {
             </p>
 
             <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
-              {/* USER ID */}
               <div>
                 <label className='block text-[14px] font-medium text-[#374151] mb-1'>
                   User ID
@@ -99,7 +89,6 @@ export default function Login () {
                 )}
               </div>
 
-              {/* PASSWORD */}
               <div>
                 <label className='block text-[14px] font-medium text-[#374151] mb-1'>
                   Password
@@ -118,7 +107,6 @@ export default function Login () {
                 )}
               </div>
 
-              {/* FORGOT */}
               <div>
                 <button
                   type='button'
@@ -128,8 +116,9 @@ export default function Login () {
                 </button>
               </div>
 
-              {/* BUTTON */}
               <button
+              onClick={()=>navigate('/tests/create')}
+
                 disabled={isSubmitting}
                 className='w-full h-[44px] rounded-md bg-[#5B8DEF] text-white text-[15px] font-medium
                        hover:bg-[#4A7FE5] transition disabled:opacity-60'
