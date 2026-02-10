@@ -1,29 +1,131 @@
 import { useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
 import { addQuestion, setStep } from '../../store/slice/createTest.slice'
-import { createQuestionsBulk } from '../../api/test.api'
+import {
+  createQuestionsBulk,
+  getTopicsBySubject,
+  getSubTopicsByTopic
+} from '../../api/test.api'
+import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
+
+/* ======================
+   TYPES
+====================== */
+
+type SubmitAction = 'next' | 'publish'
+
+interface Topic {
+  id: string
+  name: string
+}
+
+interface SubTopic {
+  id: string
+  name: string
+}
+
+interface QuestionFormValues {
+  question: string
+  option1: string
+  option2: string
+  option3: string
+  option4: string
+  correct_option: 'option1' | 'option2' | 'option3' | 'option4'
+  solution?: string
+  difficulty?: 'easy' | 'medium' | 'hard'
+  topic?: string
+  sub_topic?: string
+}
+
+interface CreateQuestionPayload {
+  type: 'mcq'
+  question: string
+  option1: string
+  option2: string
+  option3: string
+  option4: string
+  correct_option: string
+  explanation?: string
+  difficulty?: string
+  subject: string
+  test_id: string
+}
+
+interface RootState {
+  createTest: {
+    testId: string
+    noOfQuestions: number
+    subjectId: string
+  }
+}
+
+/* ======================
+   COMPONENT
+====================== */
 
 export default function Step2Questions () {
   const dispatch = useDispatch()
-  const testId = useSelector((s: any) => s.createTest.testId)
+
+  const testId = useSelector((s: RootState) => s.createTest.testId)
+  const totalQuestions = useSelector(
+    (s: RootState) => s.createTest.noOfQuestions
+  )
+  const subjectId = useSelector(
+    (s: RootState) => s.createTest.subjectId
+  )
+
+  const [currentIndex, setCurrentIndex] = useState<number>(1)
+  const [submitAction, setSubmitAction] =
+    useState<SubmitAction>('next')
+  const [topics, setTopics] = useState<Topic[]>([])
+  const [subTopics, setSubTopics] = useState<SubTopic[]>([])
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { isSubmitting }
-  } = useForm()
+  } = useForm<QuestionFormValues>()
+
+  const selectedTopic = watch('topic')
 
   /* ======================
-     SUBMIT QUESTION
+     FETCH TOPICS
   ====================== */
-  const onSubmit = async (data: any) => {
-    if (!testId) {
-      alert('Test ID missing. Please go back to Step 1.')
+  useEffect(() => {
+    if (!subjectId) return
+
+    getTopicsBySubject(subjectId)
+      .then(res => setTopics(res.data.data as Topic[]))
+      .catch(() => toast.error('Failed to load topics'))
+  }, [subjectId])
+
+  /* ======================
+     FETCH SUB-TOPICS
+  ====================== */
+  useEffect(() => {
+    if (!selectedTopic) {
+      setSubTopics([])
       return
     }
 
-    const questionPayload = {
+    getSubTopicsByTopic(selectedTopic)
+      .then(res => setSubTopics(res.data.data as SubTopic[]))
+      .catch(() => toast.error('Failed to load sub-topics'))
+  }, [selectedTopic])
+
+  /* ======================
+     SUBMIT HANDLER
+  ====================== */
+  const onSubmit = async (data: QuestionFormValues) => {
+    if (!testId || !totalQuestions) {
+      toast.error('Invalid test state')
+      return
+    }
+
+    const payload: CreateQuestionPayload = {
       type: 'mcq',
       question: data.question,
       option1: data.option1,
@@ -33,28 +135,30 @@ export default function Step2Questions () {
       correct_option: data.correct_option,
       explanation: data.solution,
       difficulty: data.difficulty,
-      topic: data.topic,
-      sub_topic: data.sub_topic,
+      subject: String(subjectId),
       test_id: testId
     }
 
     try {
-      // 🔹 API CALL (MANDATORY)
       await createQuestionsBulk({
-        questions: [questionPayload],
-      });
+        questions: [payload]
+      })
 
-      // 🔹 Save locally for preview
-      dispatch(addQuestion(questionPayload));
+      dispatch(addQuestion(payload))
+      reset()
 
-      // 🔹 Reset form for next question
-      reset();
+      // ✅ LAST QUESTION → AUTO STEP 3
+      if (currentIndex === totalQuestions) {
+        toast.success('All questions added successfully 🎉')
+        dispatch(setStep(3))
+        return
+      }
 
-      // 🔹 Move to confirmation screen
-      dispatch(setStep(3))
-    } catch (err) {
-      console.error('Question creation failed', err)
-      alert('Failed to add question')
+      // ✅ NEXT QUESTION
+      setCurrentIndex(prev => prev + 1)
+      toast.success(`Question ${currentIndex} saved`)
+    } catch {
+      toast.error('Failed to save question')
     }
   }
 
@@ -63,170 +167,113 @@ export default function Step2Questions () {
       onSubmit={handleSubmit(onSubmit)}
       className='bg-white border rounded-xl p-6 max-w-7xl'
     >
-      {/* -------- TOP HEADER -------- */}
+      {/* -------- HEADER -------- */}
       <div className='flex justify-between items-center mb-4'>
         <div>
           <h2 className='text-lg font-semibold'>Test Creation</h2>
           <p className='text-xs text-gray-500'>
-            Chapter Wise / Question Creation
+            Question {currentIndex} of {totalQuestions}
           </p>
         </div>
 
         <button
-          type='button'
-          className='px-4 py-1.5 text-sm bg-blue-500 text-white rounded-md'
+          type='submit'
+          disabled={currentIndex !== totalQuestions}
+          onClick={() => setSubmitAction('publish')}
+          className='px-4 py-1.5 text-sm bg-blue-500 text-white rounded-md disabled:opacity-50'
         >
           Publish
         </button>
       </div>
 
       <div className='flex gap-6'>
-        {/* -------- LEFT QUESTION LIST -------- */}
+        {/* -------- LEFT LIST -------- */}
         <aside className='w-[220px] border rounded-lg p-3 space-y-2'>
-          {['Question 1', 'Question 2', 'Question 3', 'Question 4'].map(
-            (q, i) => (
-              <div
-                key={q}
-                className={`px-3 py-2 rounded-md text-sm cursor-pointer ${
-                  i === 0
-                    ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                    : 'text-gray-500 border'
-                }`}
-              >
-                {q}
-              </div>
-            )
-          )}
+          {Array.from({ length: totalQuestions }).map((_, i) => (
+            <div
+              key={i}
+              className={`px-3 py-2 rounded-md text-sm border ${
+                i + 1 === currentIndex
+                  ? 'bg-blue-50 text-blue-600 border-blue-200'
+                  : 'text-gray-400'
+              }`}
+            >
+              Question {i + 1}
+            </div>
+          ))}
         </aside>
 
-        {/* -------- MAIN QUESTION AREA -------- */}
+        {/* -------- MAIN FORM -------- */}
         <div className='flex-1'>
-          {/* Meta Info */}
-          <div className='flex justify-between items-center mb-4'>
-            <div className='flex gap-3 text-xs'>
-              <span className='px-2 py-1 rounded bg-blue-50 text-blue-600'>
-                Chapter 1
-              </span>
-              <span className='px-2 py-1 rounded bg-green-50 text-green-600'>
-                Easy
-              </span>
-            </div>
+          <textarea
+            {...register('question', { required: true })}
+            placeholder='Type your question...'
+            className='w-full h-[120px] border rounded-md px-3 py-2 mb-4'
+          />
 
-            <div className='flex gap-4 text-xs text-gray-500'>
-              <span>20 Min</span>
-              <span>50 Qs</span>
-              <span>250 Marks</span>
-            </div>
-          </div>
-
-          {/* Question */}
-          <div className='border rounded-lg p-4 mb-4'>
-            <label className='text-sm font-medium mb-1 block'>
-              Question <span className='text-red-500'>*</span>
-            </label>
-            <textarea
-              {...register('question', { required: true })}
-              placeholder='Type your question here...'
-              className='w-full h-[120px] border rounded-md px-3 py-2 text-sm'
-            />
-          </div>
-
-          {/* Options */}
-          <div className='mb-4'>
-            <p className='text-sm font-medium mb-2'>Type the options below</p>
-
-            <div className='space-y-3'>
-              {['option1', 'option2', 'option3', 'option4'].map((opt, i) => (
-                <label
-                  key={opt}
-                  className='flex items-center gap-3 border rounded-md px-3 py-2'
-                >
-                  <input
-                    type='radio'
-                    value={opt}
-                    {...register('correct_option', { required: true })}
-                  />
-                  <input
-                    {...register(opt, { required: true })}
-                    placeholder={`Type Option ${i + 1} here`}
-                    className='flex-1 text-sm outline-none'
-                  />
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Solution */}
-          <div className='mb-4'>
-            <label className='text-sm font-medium block mb-1'>
-              Add Solution
-            </label>
-            <textarea
-              {...register('solution')}
-              placeholder='Type solution here...'
-              className='w-full h-[80px] border rounded-md px-3 py-2 text-sm'
-            />
-          </div>
-
-          {/* Question Settings */}
-          <div className='grid grid-cols-3 gap-4 mb-6'>
-            <div>
-              <label className='text-xs text-gray-500'>
-                Level of Difficulty
+          {(['option1', 'option2', 'option3', 'option4'] as const).map(
+            (opt, i) => (
+              <label key={opt} className='flex gap-3 mb-3 border p-2 rounded'>
+                <input
+                  type='radio'
+                  value={opt}
+                  {...register('correct_option', { required: true })}
+                />
+                <input
+                  {...register(opt, { required: true })}
+                  placeholder={`Option ${i + 1}`}
+                  className='flex-1'
+                />
               </label>
-              <select
-                {...register('difficulty')}
-                className='w-full h-[36px] border rounded-md px-2 text-sm'
-              >
-                <option value=''>Select</option>
-                <option value='easy'>Easy</option>
-                <option value='medium'>Medium</option>
-                <option value='hard'>Hard</option>
-              </select>
-            </div>
+            )
+          )}
 
-            <div>
-              <label className='text-xs text-gray-500'>Topic</label>
-              <input
-                {...register('topic')}
-                className='w-full h-[36px] border rounded-md px-2 text-sm'
-              />
-            </div>
+          <textarea
+            {...register('solution')}
+            placeholder='Solution (optional)'
+            className='w-full h-[80px] border rounded-md px-3 py-2 my-4'
+          />
 
-            <div>
-              <label className='text-xs text-gray-500'>Sub-topic</label>
-              <input
-                {...register('sub_topic')}
-                className='w-full h-[36px] border rounded-md px-2 text-sm'
-              />
-            </div>
+          <div className='grid grid-cols-3 gap-4 mb-6'>
+            <select {...register('difficulty')} className='border p-2 rounded'>
+              <option value=''>Difficulty</option>
+              <option value='easy'>Easy</option>
+              <option value='medium'>Medium</option>
+              <option value='hard'>Hard</option>
+            </select>
+
+            <select {...register('topic')} className='border p-2 rounded'>
+              <option value=''>Topic</option>
+              {topics.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+
+            <select {...register('sub_topic')} className='border p-2 rounded'>
+              <option value=''>Sub Topic</option>
+              {subTopics.map(st => (
+                <option key={st.id} value={st.id}>{st.name}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Footer Actions */}
           <div className='flex justify-between items-center'>
             <button
               type='button'
+              onClick={() => dispatch(setStep(1))}
               className='px-4 py-2 text-sm bg-red-50 text-red-600 rounded-md'
             >
               Exit Test Creation
             </button>
 
-            <div className='flex gap-3'>
-              <button
-                type='button'
-                className='px-4 py-2 text-sm border rounded-md'
-              >
-                Save as Draft
-              </button>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className='px-6 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-60'
-              >
-                {isSubmitting ? 'Saving...' : 'Next'}
-              </button>
-            </div>
+            <button
+              type='submit'
+              onClick={() => setSubmitAction('next')}
+              disabled={isSubmitting}
+              className='px-6 py-2 bg-blue-500 text-white rounded'
+            >
+              {isSubmitting ? 'Saving...' : 'Next'}
+            </button>
           </div>
         </div>
       </div>

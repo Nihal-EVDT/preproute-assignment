@@ -3,13 +3,47 @@ import { useDispatch, useSelector } from "react-redux";
 import { setStep } from "../../store/slice/createTest.slice";
 import { getTestById } from "../../api/test.api";
 
+/* ======================
+   TYPES
+====================== */
+
+interface Question {
+  id: string;
+}
+
+interface TestData {
+  subject?: string;
+  topics?: string[];
+  sub_topics?: string[];
+  questions?: Question[];
+}
+
+interface BasicDetails {
+  type?: string;
+  difficulty?: string;
+}
+
+interface RootState {
+  createTest: {
+    testId: string;
+    noOfQuestions: number;
+    basicDetails: BasicDetails;
+  };
+}
+
 export default function Step3Confirm() {
   const dispatch = useDispatch();
-  const testId = useSelector((s: any) => s.createTest.testId);
-  const basicDetails = useSelector((s: any) => s.createTest.basicDetails);
 
-  const [testData, setTestData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const testId = useSelector((s: RootState) => s.createTest.testId);
+  const totalQuestions = useSelector(
+    (s: RootState) => s.createTest.noOfQuestions
+  );
+  const basicDetails = useSelector(
+    (s: RootState) => s.createTest.basicDetails
+  );
+
+  const [testData, setTestData] = useState<TestData | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   /* ======================
      FETCH TEST DETAILS
@@ -17,10 +51,8 @@ export default function Step3Confirm() {
   useEffect(() => {
     if (!testId) return;
 
-    setLoading(true);
     getTestById(testId)
-      .then(res => setTestData(res.data.data))
-      .catch(err => console.error("Fetch test failed", err))
+      .then(res => setTestData(res.data.data as TestData))
       .finally(() => setLoading(false));
   }, [testId]);
 
@@ -47,27 +79,18 @@ export default function Step3Confirm() {
       <div className="flex gap-6">
         {/* -------- LEFT QUESTION LIST -------- */}
         <aside className="w-[220px] border rounded-lg p-3 space-y-2">
-          {testData?.questions?.length
-            ? testData.questions.map((_: any, i: number) => (
-                <div
-                  key={i}
-                  className={`px-3 py-2 rounded-md text-sm ${
-                    i === 0
-                      ? "bg-blue-50 text-blue-600 border border-blue-200"
-                      : "border text-gray-500"
-                  }`}
-                >
-                  Question {i + 1}
-                </div>
-              ))
-            : ["Question 1"].map(q => (
-                <div
-                  key={q}
-                  className="px-3 py-2 rounded-md text-sm bg-blue-50 text-blue-600 border border-blue-200"
-                >
-                  {q}
-                </div>
-              ))}
+          {Array.from({ length: totalQuestions }).map((_, i) => (
+            <div
+              key={i}
+              className={`px-3 py-2 rounded-md text-sm ${
+                i === 0
+                  ? "bg-blue-50 text-blue-600 border border-blue-200"
+                  : "border text-gray-500"
+              }`}
+            >
+              Question {i + 1}
+            </div>
+          ))}
         </aside>
 
         {/* -------- MAIN CONTENT -------- */}

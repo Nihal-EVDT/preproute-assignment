@@ -3,7 +3,9 @@ import { useForm, Controller } from 'react-hook-form'
 import { useDispatch } from 'react-redux'
 import {
   setBasicDetails,
+  setNoOfQuestions,
   setStep,
+  setSubjectId,
   setTestId
 } from '../../store/slice/createTest.slice'
 import {
@@ -113,42 +115,45 @@ export default function Step1Basic () {
      SUBMIT
   ====================== */
   const onSubmit = async (data: Step1FormValues) => {
-  try {
-    setLoading(true)
+    try {
+      setLoading(true)
 
-    const total_marks =
-      Number(data.totalQuestions) * Number(data.correct)
+      const total_marks = Number(data.totalQuestions) * Number(data.correct)
 
-    const payload = {
-      name: data.name,
-      subject: data.subject,
-      topics: data.topics,
-      sub_topics: data.subTopics,
-      difficulty: data.difficulty,
-      correct_marks: Number(data.correct),
-      wrong_marks: Number(data.wrong),
-      unattempt_marks: Number(data.unattempt),
-      total_questions: Number(data.totalQuestions), 
-      total_marks,                                 
-      total_time: Number(data.duration),
-      status: 'draft' as const,
-      type: 'chapterwise' as const
+      const payload = {
+        name: data.name,
+        subject: data.subject,
+        topics: data.topics,
+        sub_topics: data.subTopics,
+        difficulty: data.difficulty,
+        correct_marks: Number(data.correct),
+        wrong_marks: Number(data.wrong),
+        unattempt_marks: Number(data.unattempt),
+        total_questions: Number(data.totalQuestions),
+        total_marks,
+        total_time: Number(data.duration),
+        status: 'draft' as const,
+        type: 'chapterwise' as const
+      }
+
+      const res = await createTest(payload)
+      console.log('Test created:', res.data)
+
+      if (res?.data?.status === 'success') {
+        toast.success('Test created successfully 🎉')
+        dispatch(setTestId(res.data.data.id))
+        dispatch(setNoOfQuestions(Number(res.data.data.total_questions)))
+        dispatch(setBasicDetails(res.data))
+        dispatch(setSubjectId(data.subject))
+        dispatch(setStep(2))
+      }
+    } catch (err) {
+      console.error('Test creation failed', err)
+      toast.error('Failed to create test. Please try again.')
+    } finally {
+      setLoading(false)
     }
-
-    const res = await createTest(payload)
-    console.log('Test created:', res.data)
-
-    dispatch(setTestId(res.data.data.id))
-    dispatch(setBasicDetails(payload))
-    dispatch(setStep(2))
-  } catch (err) {
-    console.error('Test creation failed', err)
-    toast.error('Failed to create test. Please try again.')
-  } finally {
-    setLoading(false)
   }
-}
-
 
   return (
     <form
