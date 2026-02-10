@@ -1,6 +1,7 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { resetTest } from "../../store/slice/createTest.slice";
+import { publishTest } from "../../api/test.api";
 
 export default function Step4Publish() {
   const dispatch = useDispatch();
@@ -9,7 +10,7 @@ export default function Step4Publish() {
 
   const confirmPublish = async () => {
     // 🔹 API later
-    // await publishTest(testId);
+    await publishTest(testId);
 
     dispatch(resetTest());
     navigate("/dashboard");

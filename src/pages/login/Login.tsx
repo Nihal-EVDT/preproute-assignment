@@ -8,6 +8,7 @@ import logo from '../../assets/logo.png'
 import { useNavigate } from 'react-router-dom'
 import { loginApi } from '../../api/auth.api'
 import { loginSuccess } from '../../store/slice/auth.slice'
+import toast from 'react-hot-toast'
 
 const schema = yup.object({
   userId: yup.string().required('User ID is required'),
@@ -34,10 +35,17 @@ export default function Login () {
   const onSubmit = async (data: LoginForm) => {
     try {
       const res = await loginApi(data)
+      console.log('Login successful:', res.data)
+      if (res?.data?.status === 'success') {
+        dispatch(loginSuccess(res.data.data.token))
+        navigate('/dashboard')
+        toast.success('Login successful 🎉')
+      }
       dispatch(loginSuccess(res.data.data.token))
-      navigate('/dashboard')
+      // navigate('/dashboard')
     } catch (error) {
       console.error('Login failed:', error)
+      toast.error('Login failed. Please check your credentials and try again.')
     }
   }
 
@@ -117,8 +125,6 @@ export default function Login () {
               </div>
 
               <button
-              onClick={()=>navigate('/tests/create')}
-
                 disabled={isSubmitting}
                 className='w-full h-[44px] rounded-md bg-[#5B8DEF] text-white text-[15px] font-medium
                        hover:bg-[#4A7FE5] transition disabled:opacity-60'

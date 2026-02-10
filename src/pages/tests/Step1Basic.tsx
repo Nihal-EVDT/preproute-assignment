@@ -77,10 +77,10 @@ export default function Step1Basic() {
         type: "chapterwise",
       };
 
-      // const res = await createTest(payload);
+      const res = await createTest(payload);
 
-      // dispatch(setTestId(res.data.data.id));
-      // dispatch(setBasicDetails(payload));
+      dispatch(setTestId(res.data.data.id));
+      dispatch(setBasicDetails(payload));
       dispatch(setStep(2));
     } catch (err) {
       console.error("Create test failed", err);

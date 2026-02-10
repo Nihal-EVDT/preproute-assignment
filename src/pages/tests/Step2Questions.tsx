@@ -40,15 +40,15 @@ export default function Step2Questions () {
 
     try {
       // 🔹 API CALL (MANDATORY)
-      // await createQuestionsBulk({
-      //   questions: [questionPayload],
-      // });
+      await createQuestionsBulk({
+        questions: [questionPayload],
+      });
 
-      // // 🔹 Save locally for preview
-      // dispatch(addQuestion(questionPayload));
+      // 🔹 Save locally for preview
+      dispatch(addQuestion(questionPayload));
 
-      // // 🔹 Reset form for next question
-      // reset();
+      // 🔹 Reset form for next question
+      reset();
 
       // 🔹 Move to confirmation screen
       dispatch(setStep(3))
@@ -220,8 +220,7 @@ export default function Step2Questions () {
               </button>
 
               <button
-                onClick={() => dispatch(setStep(3))}
-                // type="submit"
+                type="submit"
                 disabled={isSubmitting}
                 className='px-6 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-60'
               >
