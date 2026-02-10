@@ -1,13 +1,42 @@
 import { createSlice } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+
+/* ======================
+   TYPES
+====================== */
+
+export interface BasicDetails {
+  type?: string;
+  difficulty?: string;
+  subject?: string;
+}
+
+export interface Question {
+  type: "mcq";
+  question: string;
+  option1: string;
+  option2: string;
+  option3: string;
+  option4: string;
+  correct_option: string;
+  explanation?: string;
+  difficulty?: string;
+  subject: string;
+  test_id: string;
+}
 
 interface CreateTestState {
-  noOfQuestions?: number | null;
+  noOfQuestions: number | null;
   testId: string | null;
-  basicDetails: any;
-  questions: any[];
+  basicDetails: BasicDetails;
+  questions: Question[];
   currentStep: number;
-  subjectId?: string | null;
+  subjectId: string | null;
 }
+
+/* ======================
+   INITIAL STATE
+====================== */
 
 const initialState: CreateTestState = {
   testId: null,
@@ -15,36 +44,50 @@ const initialState: CreateTestState = {
   questions: [],
   currentStep: 1,
   noOfQuestions: null,
-  subjectId: null
+  subjectId: null,
 };
+
+/* ======================
+   SLICE
+====================== */
 
 const createTestSlice = createSlice({
   name: "createTest",
   initialState,
   reducers: {
-    setBasicDetails(state, action) {
+    setBasicDetails(state, action: PayloadAction<BasicDetails>) {
       state.basicDetails = action.payload;
     },
-    setTestId(state, action) {
+
+    setTestId(state, action: PayloadAction<string | null>) {
       state.testId = action.payload;
     },
-    addQuestion(state, action) {
+
+    addQuestion(state, action: PayloadAction<Question>) {
       state.questions.push(action.payload);
     },
-    setStep(state, action) {
+
+    setStep(state, action: PayloadAction<number>) {
       state.currentStep = action.payload;
     },
-    setNoOfQuestions(state, action) {
+
+    setNoOfQuestions(state, action: PayloadAction<number | null>) {
       state.noOfQuestions = action.payload;
     },
-    setSubjectId(state, action) {
+
+    setSubjectId(state, action: PayloadAction<string | null>) {
       state.subjectId = action.payload;
     },
+
     resetTest() {
       return initialState;
     },
   },
 });
+
+/* ======================
+   EXPORTS
+====================== */
 
 export const {
   setBasicDetails,
@@ -53,7 +96,7 @@ export const {
   setStep,
   resetTest,
   setNoOfQuestions,
-  setSubjectId
+  setSubjectId,
 } = createTestSlice.actions;
 
 export default createTestSlice.reducer;
