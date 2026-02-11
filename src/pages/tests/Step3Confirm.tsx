@@ -31,7 +31,7 @@ interface RootState {
   };
 }
 
-export default function Step3Confirm() {
+export default function Step3Confirm({mode}: {mode?: string}) {
   const dispatch = useDispatch();
 
   const testId = useSelector((s: RootState) => s.createTest.testId);

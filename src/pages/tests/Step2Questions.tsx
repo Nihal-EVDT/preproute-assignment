@@ -64,20 +64,18 @@ interface RootState {
    COMPONENT
 ====================== */
 
-export default function Step2Questions () {
+export default function Step2Questions ({mode}: {mode?: string}) {
   const dispatch = useDispatch()
 
   const testId = useSelector((s: RootState) => s.createTest.testId)
   const totalQuestions = useSelector(
     (s: RootState) => s.createTest.noOfQuestions
   )
-  const subjectId = useSelector(
-    (s: RootState) => s.createTest.subjectId
-  )
+  const subjectId = useSelector((s: RootState) => s.createTest.subjectId)
 
   const [currentIndex, setCurrentIndex] = useState<number>(1)
-  const [submitAction, setSubmitAction] =
-    useState<SubmitAction>('next')
+  const [submitAction, setSubmitAction] = useState<SubmitAction>('next')
+  console.log('Current submit action:', submitAction)
   const [topics, setTopics] = useState<Topic[]>([])
   const [subTopics, setSubTopics] = useState<SubTopic[]>([])
 
@@ -245,14 +243,18 @@ export default function Step2Questions () {
             <select {...register('topic')} className='border p-2 rounded'>
               <option value=''>Topic</option>
               {topics.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
               ))}
             </select>
 
             <select {...register('sub_topic')} className='border p-2 rounded'>
               <option value=''>Sub Topic</option>
               {subTopics.map(st => (
-                <option key={st.id} value={st.id}>{st.name}</option>
+                <option key={st.id} value={st.id}>
+                  {st.name}
+                </option>
               ))}
             </select>
           </div>

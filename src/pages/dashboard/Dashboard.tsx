@@ -95,8 +95,23 @@ export default function Dashboard () {
                     {new Date(test.created_at).toLocaleDateString()}
                   </td>
                   <td className='px-4 py-3 space-x-3'>
-                    <button className='text-blue-600 text-xs'>Edit</button>
-                    <button className='text-gray-600 text-xs'>View</button>
+                    <button
+                      onClick={() =>
+                        navigate(`/tests/create/${test.id}?mode=edit`)
+                      }
+                      className='text-blue-600 text-xs'
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        navigate(`/tests/create/${test.id}?mode=view`)
+                      }
+                      className='text-gray-600 text-xs'
+                    >
+                      View
+                    </button>
                     <button className='text-red-500 text-xs'>Delete</button>
                   </td>
                 </tr>

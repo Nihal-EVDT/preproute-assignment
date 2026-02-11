@@ -25,6 +25,48 @@ export interface Question {
   test_id: string;
 }
 
+export type TestType = "chapterwise" | "fulltest" | "mock";
+export type TestDifficulty = "easy" | "medium" | "hard";
+export type TestStatus = "draft" | "live" | "expired";
+
+export interface TestDetails {
+  id: string;
+  name: string;
+
+  type: TestType;
+  difficulty: TestDifficulty;
+  status: TestStatus;
+
+  subject: string;
+  topics: string[];
+  sub_topics: string[];
+
+  questions: string[]; // question IDs
+
+  total_questions: number;
+  total_marks: number;
+  total_time: number;
+
+  correct_marks: number;
+  wrong_marks: number;
+  unattempt_marks: number;
+
+  paragraph_question: string | null;
+
+  scheduled_date: string | null;
+  expiry_date: string | null;
+  slot: string | null;
+
+  hidden_from_moderator: boolean | null;
+
+  created_at: string;
+  created_by: number;
+
+  updated_at: string;
+  updated_by: number;
+}
+
+
 interface CreateTestState {
   noOfQuestions: number | null;
   testId: string | null;
@@ -32,6 +74,7 @@ interface CreateTestState {
   questions: Question[];
   currentStep: number;
   subjectId: string | null;
+  getById: TestDetails | null;
 }
 
 /* ======================
@@ -45,6 +88,7 @@ const initialState: CreateTestState = {
   currentStep: 1,
   noOfQuestions: null,
   subjectId: null,
+  getById:null,
 };
 
 /* ======================
@@ -78,6 +122,9 @@ const createTestSlice = createSlice({
     setSubjectId(state, action: PayloadAction<string | null>) {
       state.subjectId = action.payload;
     },
+    setGetById(state, action: PayloadAction<TestDetails | null>) {
+      state.getById = action.payload;
+    },
 
     resetTest() {
       return initialState;
@@ -97,6 +144,7 @@ export const {
   resetTest,
   setNoOfQuestions,
   setSubjectId,
+  setGetById,
 } = createTestSlice.actions;
 
 export default createTestSlice.reducer;

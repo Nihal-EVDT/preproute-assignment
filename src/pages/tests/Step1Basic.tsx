@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import {
   setBasicDetails,
   setNoOfQuestions,
   setStep,
   setSubjectId,
-  setTestId
+  setTestId,
+  type TestDetails
 } from '../../store/slice/createTest.slice'
 import {
   createTest,
   getAllSubjects,
   getTopicsBySubject,
-  getSubTopicsByTopic
+  getSubTopicsByTopic,
+  updateTest
 } from '../../api/test.api'
 import MultiSelectDropdown from '../../components/MultiSelectDropdown'
 import toast from 'react-hot-toast'
@@ -50,21 +52,36 @@ interface Step1FormValues {
   unattempt: string
   totalQuestions: string
 }
+interface RootState {
+  createTest: {
+    testId: string
+    noOfQuestions: number
+    subjectId: string
+    getById: TestDetails | null
+  }
+}
 
-export default function Step1Basic () {
+export default function Step1Basic ({ mode }: { mode?: string }) {
+  const TestGetById = useSelector((s: RootState) => s.createTest.getById)
+
   const dispatch = useDispatch()
 
-  const { register, handleSubmit, watch, control } = useForm<Step1FormValues>({
-    defaultValues: {
-      topics: [],
-      subTopics: []
-    }
-  })
+  const { register, handleSubmit, watch, control, reset, setValue } =
+    useForm<Step1FormValues>({
+      defaultValues: {
+        topics: [],
+        subTopics: []
+      }
+    })
 
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [topics, setTopics] = useState<Topic[]>([])
   const [subTopics, setSubTopics] = useState<SubTopic[]>([])
-  const [loading, setLoading] = useState<boolean>(false)
+
+  const [subjectsLoading, setSubjectsLoading] = useState(false)
+  const [topicsLoading, setTopicsLoading] = useState(false)
+  const [subTopicsLoading, setSubTopicsLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const selectedSubject = watch('subject')
   const selectedTopics = watch('topics')
@@ -75,10 +92,61 @@ export default function Step1Basic () {
      FETCH SUBJECTS
   ====================== */
   useEffect(() => {
-    getAllSubjects()
-      .then(res => setSubjects(res.data.data))
-      .catch(err => console.error('Subjects error', err))
+    const fetchSubjects = async () => {
+      try {
+        setSubjectsLoading(true)
+        const res = await getAllSubjects()
+        setSubjects(res.data.data)
+      } catch (err) {
+        console.error('Subjects error', err)
+      } finally {
+        setSubjectsLoading(false)
+      }
+    }
+
+    fetchSubjects()
   }, [])
+
+  /* ======================
+   EDIT PREFILL
+====================== */
+  useEffect(() => {
+    if (mode === 'edit' && TestGetById?.id) {
+      // normalize difficulty
+      const normalizeDifficulty = (
+        value: string
+      ): 'easy' | 'medium' | 'difficult' | undefined => {
+        if (value === 'hard') return 'difficult'
+        if (value === 'easy') return 'easy'
+        if (value === 'medium') return 'medium'
+        return undefined
+      }
+
+      reset({
+        name: TestGetById.name,
+        difficulty: normalizeDifficulty(TestGetById.difficulty),
+        correct: String(TestGetById.correct_marks),
+        wrong: String(TestGetById.wrong_marks),
+        unattempt: String(TestGetById.unattempt_marks),
+        totalQuestions: String(TestGetById.total_questions),
+        duration: String(TestGetById.total_time),
+        topics: [],
+        subTopics: []
+      })
+    }
+  }, [mode, TestGetById, reset])
+
+  /* ======================
+     MAP SUBJECT NAME → ID
+  ====================== */
+  useEffect(() => {
+    if (mode === 'edit' && TestGetById?.subject && subjects.length) {
+      const matched = subjects.find(s => s.name === TestGetById.subject)
+      if (matched) {
+        setValue('subject', matched.id)
+      }
+    }
+  }, [subjects, mode, TestGetById, setValue])
 
   /* ======================
      FETCH TOPICS
@@ -89,10 +157,33 @@ export default function Step1Basic () {
       return
     }
 
-    getTopicsBySubject(selectedSubject)
-      .then(res => setTopics(res.data.data))
-      .catch(err => console.error('Topics error', err))
+    const fetchTopics = async () => {
+      try {
+        setTopicsLoading(true)
+        const res = await getTopicsBySubject(selectedSubject)
+        setTopics(res.data.data)
+      } catch (err) {
+        console.error('Topics error', err)
+      } finally {
+        setTopicsLoading(false)
+      }
+    }
+
+    fetchTopics()
   }, [selectedSubject])
+
+  /* ======================
+     MAP TOPIC NAME → IDS
+  ====================== */
+  useEffect(() => {
+    if (mode === 'edit' && topics.length && TestGetById?.topics) {
+      const matchedIds = topics
+        .filter(t => TestGetById.topics.includes(t.name))
+        .map(t => t.id)
+
+      setValue('topics', matchedIds)
+    }
+  }, [topics, mode, TestGetById, setValue])
 
   /* ======================
      FETCH SUB TOPICS
@@ -103,13 +194,38 @@ export default function Step1Basic () {
       return
     }
 
-    Promise.all(selectedTopics.map(id => getSubTopicsByTopic(id)))
-      .then(responses => {
+    const fetchSubTopics = async () => {
+      try {
+        setSubTopicsLoading(true)
+
+        const responses = await Promise.all(
+          selectedTopics.map(id => getSubTopicsByTopic(id))
+        )
+
         const merged = responses.flatMap(r => r.data.data)
         setSubTopics(merged)
-      })
-      .catch(err => console.error('Sub-topics error', err))
+      } catch (err) {
+        console.error('Sub-topics error', err)
+      } finally {
+        setSubTopicsLoading(false)
+      }
+    }
+
+    fetchSubTopics()
   }, [selectedTopics])
+
+  /* ======================
+     MAP SUBTOPIC NAME → IDS
+  ====================== */
+  useEffect(() => {
+    if (mode === 'edit' && subTopics.length && TestGetById?.sub_topics) {
+      const matchedIds = subTopics
+        .filter(st => TestGetById.sub_topics.includes(st.name))
+        .map(st => st.id)
+
+      setValue('subTopics', matchedIds)
+    }
+  }, [subTopics, mode, TestGetById, setValue])
 
   /* ======================
      SUBMIT
@@ -136,11 +252,18 @@ export default function Step1Basic () {
         type: 'chapterwise' as const
       }
 
-      const res = await createTest(payload)
-      console.log('Test created:', res.data)
+      const res =
+        mode === 'edit'
+          ? await updateTest(TestGetById?.id as string, payload)
+          : await createTest(payload)
 
       if (res?.data?.status === 'success') {
-        toast.success('Test created successfully 🎉')
+        toast.success(
+          mode === 'edit'
+            ? 'Test updated successfully 🎉'
+            : 'Test created successfully 🎉'
+        )
+
         dispatch(setTestId(res.data.data.id))
         dispatch(setNoOfQuestions(Number(res.data.data.total_questions)))
         dispatch(setBasicDetails(res.data))
@@ -148,8 +271,8 @@ export default function Step1Basic () {
         dispatch(setStep(2))
       }
     } catch (err) {
-      console.error('Test creation failed', err)
-      toast.error('Failed to create test. Please try again.')
+      console.error('Test failed', err)
+      toast.error('Failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -183,16 +306,20 @@ export default function Step1Basic () {
         ))}
       </div>
 
-      {/* -------- Form Grid -------- */}
       <div className='grid grid-cols-2 gap-x-6 gap-y-5'>
         {/* Subject */}
         <div>
           <label className='text-sm font-medium'>Subject</label>
           <select
             {...register('subject', { required: true })}
+            disabled={subjectsLoading}
             className='mt-1 w-full h-[40px] border rounded-md px-3 text-sm'
           >
-            <option value=''>Choose from Drop-down</option>
+            <option value=''>
+              {subjectsLoading
+                ? 'Loading subjects...'
+                : 'Choose from Drop-down'}
+            </option>
             {subjects.map(s => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -211,7 +338,7 @@ export default function Step1Basic () {
           />
         </div>
 
-        {/* Topics (MULTI DROPDOWN) */}
+        {/* Topics */}
         <div>
           <label className='text-sm font-medium'>Topics</label>
           <Controller
@@ -225,14 +352,16 @@ export default function Step1Basic () {
                 }))}
                 value={field.value}
                 onChange={field.onChange}
-                placeholder='Select Topics'
-                disabled={!topics.length}
+                placeholder={
+                  topicsLoading ? 'Loading topics...' : 'Select Topics'
+                }
+                disabled={!topics.length || topicsLoading}
               />
             )}
           />
         </div>
 
-        {/* Sub Topics (MULTI DROPDOWN) */}
+        {/* Sub Topics */}
         <div>
           <label className='text-sm font-medium'>Sub Topics</label>
           <Controller
@@ -246,14 +375,17 @@ export default function Step1Basic () {
                 }))}
                 value={field.value}
                 onChange={field.onChange}
-                placeholder='Select Sub Topics'
-                disabled={!subTopics.length}
+                placeholder={
+                  subTopicsLoading
+                    ? 'Loading Sub Topics...'
+                    : 'Select Sub Topics'
+                }
+                disabled={!subTopics.length || subTopicsLoading}
               />
             )}
           />
         </div>
 
-        {/* Duration */}
         <div>
           <label className='text-sm font-medium'>Duration (Minutes)</label>
           <input
@@ -262,7 +394,6 @@ export default function Step1Basic () {
           />
         </div>
 
-        {/* Difficulty */}
         <div>
           <label className='text-sm font-medium block mb-2'>
             Test Difficulty Level
@@ -282,12 +413,10 @@ export default function Step1Basic () {
         </div>
       </div>
 
-      {/* -------- Marking Scheme -------- */}
       <div className='mt-6'>
         <h3 className='text-sm font-medium mb-4'>Marking Scheme:</h3>
 
         <div className='grid grid-cols-5 gap-4'>
-          {/* Wrong Answer */}
           <div className='flex flex-col gap-1'>
             <label className='text-xs text-gray-600'>Wrong Answer</label>
             <input
@@ -298,7 +427,6 @@ export default function Step1Basic () {
             />
           </div>
 
-          {/* Unattempted */}
           <div className='flex flex-col gap-1'>
             <label className='text-xs text-gray-600'>Unattempted</label>
             <input
@@ -309,7 +437,6 @@ export default function Step1Basic () {
             />
           </div>
 
-          {/* Correct Answer */}
           <div className='flex flex-col gap-1'>
             <label className='text-xs text-gray-600'>Correct Answer</label>
             <input
@@ -320,7 +447,6 @@ export default function Step1Basic () {
             />
           </div>
 
-          {/* No of Questions */}
           <div className='flex flex-col gap-1'>
             <label className='text-xs text-gray-600'>No of Questions</label>
             <input
@@ -331,7 +457,6 @@ export default function Step1Basic () {
             />
           </div>
 
-          {/* Total Marks (AUTO) */}
           <div className='flex flex-col gap-1'>
             <label className='text-xs text-gray-600'>Total Marks</label>
             <input
@@ -343,14 +468,13 @@ export default function Step1Basic () {
         </div>
       </div>
 
-      {/* -------- Footer -------- */}
       <div className='flex justify-end mt-8'>
         <button
           type='submit'
           disabled={loading}
           className='px-6 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-60'
         >
-          {loading ? 'Creating...' : 'Next'}
+          {loading ? (mode === 'edit' ? 'Updating...' : 'Creating...') : 'Next'}
         </button>
       </div>
     </form>

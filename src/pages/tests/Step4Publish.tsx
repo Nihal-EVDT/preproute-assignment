@@ -7,7 +7,7 @@ import { resetTest } from '../../store/slice/createTest.slice'
 import { publishTest } from '../../api/test.api'
 import type { RootState } from '../../store'
 
-export default function Step4Publish () {
+export default function Step4Publish ({mode}: {mode?: string}) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 

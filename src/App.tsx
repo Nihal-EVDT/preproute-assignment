@@ -10,6 +10,7 @@ function App() {
       <Route path="/" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/tests/create" element={<Test />} />
+      <Route path="/tests/create/:id" element={<Test />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
