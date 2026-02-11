@@ -8,6 +8,7 @@ import { publishTest } from '../../api/test.api'
 import type { RootState } from '../../store'
 
 export default function Step4Publish ({mode}: {mode?: string}) {
+  console.log('Step 4 mode:', mode) // 🔥 DEBUG
   const dispatch = useDispatch()
   const navigate = useNavigate()
 

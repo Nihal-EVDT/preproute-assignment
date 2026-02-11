@@ -66,6 +66,7 @@ interface RootState {
 
 export default function Step2Questions ({mode}: {mode?: string}) {
   const dispatch = useDispatch()
+  console.log('Step 2 mode:', mode) // 🔥 DEBUG
 
   const testId = useSelector((s: RootState) => s.createTest.testId)
   const totalQuestions = useSelector(

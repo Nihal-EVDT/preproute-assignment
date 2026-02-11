@@ -33,6 +33,7 @@ interface RootState {
 
 export default function Step3Confirm({mode}: {mode?: string}) {
   const dispatch = useDispatch();
+  console.log('Step 3 mode:', mode); // 🔥 DEBUG
 
   const testId = useSelector((s: RootState) => s.createTest.testId);
   const totalQuestions = useSelector(
